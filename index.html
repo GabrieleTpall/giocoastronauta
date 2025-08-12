@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gioco Astronauta: Equipaggiamento & Atterraggio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#121a33; --panel-2:#0f1630; --accent:#6cf; --good:#18c37b; --bad:#ff4d6d; --warn:#ffb703; --text:#e8ecf1;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,#060a18,#0b1020 40%, #0d1734);
+      color:var(--text); font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,Arial; overflow:hidden;
+    }
+    header{
+      padding:14px 18px; display:flex; align-items:center; gap:14px; backdrop-filter: blur(4px);
+      background:rgba(5,10,25,.5); border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    header h1{font-size:20px; margin:0; font-weight:800; letter-spacing:.3px}
+    header .sub{opacity:.8; font-size:12px}
+
+    .layout{display:grid; grid-template-columns: 380px 1fr 400px; gap:14px; padding:14px; height:calc(100% - 60px)}
+
+    .card{
+      background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid rgba(255,255,255,.06);
+      border-radius:18px; padding:14px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .card h2{margin:0 0 10px; font-size:16px; letter-spacing:.2px}
+    .grid{display:grid; gap:10px}
+
+    /* Equipaggiamento */
+    .equip-section{max-height:100%; overflow:auto; padding-right:4px}
+    .equip-group{border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:10px}
+    .equip-title{font-weight:700; font-size:14px; margin-bottom:8px}
+
+    .choice{
+      display:grid; grid-template-columns: 1fr auto; align-items:center; gap:6px; padding:8px 10px; border-radius:10px;
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); cursor:pointer; user-select:none;
+      transition:.15s ease; font-size:13px
+    }
+    .choice:hover{transform:translateY(-1px); background:rgba(255,255,255,.05)}
+    .choice input{appearance:none; width:18px; height:18px; border-radius:50%; border:2px solid #9cc7ff; display:grid; place-items:center}
+    .choice input:checked{background:var(--accent)}
+    .hint{opacity:.75; font-size:12px}
+
+    /* Avatar */
+    .avatar-wrap{
+      position:relative; height:100%; display:grid; grid-template-rows: auto 1fr auto; gap:8px;
+      justify-items:center; align-items:center; overflow:hidden
+    }
+    .stage{
+      position:relative; width:100%; height:100%; display:grid; place-items:center;
+      background: radial-gradient(1200px 500px at 50% 120%, rgba(108,204,255,.06), transparent 60%);
+      border-radius:14px; border:1px solid rgba(255,255,255,.06)
+    }
+    .planet-backdrop{
+      position:absolute; inset:0; background:
+        radial-gradient(900px 300px at 50% 120%, rgba(108,204,255,.08), transparent 60%),
+        radial-gradient(600px 260px at 10% 10%, rgba(255,255,255,.06), transparent 40%),
+        radial-gradient(700px 240px at 90% 20%, rgba(255,255,255,.05), transparent 40%);
+      pointer-events:none
+    }
+    .ground{position:absolute; bottom:0; left:0; right:0; height:22%; background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.06)); filter: blur(0.2px)}
+
+    /* Astronauta SVG alto dettaglio */
+    .astronaut{width:360px; max-width:60vh}
+    .equip-overlay{position:absolute; pointer-events:none}
+    .parachute{top:6%;}
+    .heatshield{bottom:18%;}
+    .aerostat{top:-4%}
+
+    .status{
+      display:flex; gap:10px; align-items:center; font-size:14px; padding:8px 12px; border-radius:10px;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06)
+    }
+    .status .dot{width:10px; height:10px; border-radius:50%}
+
+    .controls{display:flex; gap:10px; flex-wrap:wrap}
+    .btn{padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:#182347; color:#fff; cursor:pointer; font-weight:700; letter-spacing:.2px}
+    .btn.primary{background:linear-gradient(180deg,#3a7bd5,#2652a6)}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+
+    /* Piano destro: pianeti */
+    .planet-list{max-height:40vh; overflow:auto; padding-right:4px}
+    .planet-card{
+      padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.08); margin-bottom:8px; cursor:pointer;
+      display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
+      background:rgba(255,255,255,.03)
+    }
+    .planet-card:hover{background:rgba(255,255,255,.06)}
+    .planet-badge{width:12px; height:12px; border-radius:50%}
+    .planet-info{font-size:12px; opacity:.85}
+
+    .planet-details{border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px; min-height:190px}
+
+    /* Animazioni esito */
+    .anim-walk{animation:walk 1s steps(6) infinite}
+    @keyframes walk{0%{transform:translateX(0)} 50%{transform:translateX(3px)} 100%{transform:translateX(0)}}
+
+    .anim-fall{animation:fall 1.2s ease-in forwards}
+    @keyframes fall{0%{transform:translateY(0) rotate(0)} 40%{transform:translateY(-6px)} 100%{transform:translateY(120px) rotate(90deg)}}
+
+    .skull{position:absolute; font-size:72px; opacity:0; transform:scale(.6); transition:.4s ease; top:20%;}
+    .show-skull{opacity:1; transform:scale(1)}
+
+    /* Scrollbar sottile */
+    ::-webkit-scrollbar{width:10px;height:10px}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15); border-radius:10px}
+    ::-webkit-scrollbar-track{background:transparent}
+
+    .legend{font-size:12px; opacity:.8}
+    .pill{padding:2px 6px; border-radius:8px; border:1px solid rgba(255,255,255,.15); margin-right:6px}
+
+    .footer-note{opacity:.7; font-size:12px; text-align:center}
+
+    /* Diagnostica */
+    details.debug{margin-top:8px}
+    .debug pre{background:#0a0f22; border:1px solid rgba(255,255,255,.08); padding:10px; border-radius:12px; max-height:26vh; overflow:auto}
+    .badge{display:inline-block; padding:2px 6px; border:1px solid rgba(255,255,255,.15); border-radius:8px; margin-right:6px; font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Equipaggia l'Astronauta • Missione Pianeti</h1>
+    <div class="sub">Gioco single‑player, <strong>senza MetaMask né registrazioni</strong>. Scegli l'equipaggiamento in base alle condizioni reali dei pianeti e prova l'atterraggio.</div>
+  </header>
+
+  <main class="layout" aria-label="Layout principale del gioco">
+    <!-- SINISTRA: EQUIPAGGIAMENTO -->
+    <section class="card equip-section" id="equipPanel" aria-label="Schermata di vestizione">
+      <h2>Schermata di vestizione</h2>
+      <div class="legend" style="margin-bottom:8px">Suggerimento: passa il mouse sulle opzioni per le note. L'avatar al centro si aggiorna in tempo reale.</div>
+      <div class="grid" role="group" aria-label="Selettori equipaggiamento">
+        <div class="equip-group">
+          <div class="equip-title">Tuta & Pressione</div>
+          <label class="choice" title="Bassa pressione (orbita bassa, attività intra-veicolo)">
+            <span>Standard LEO</span>
+            <input type="radio" name="pressure" value="low" checked>
+          </label>
+          <label class="choice" title="Attività extraveicolare e superfici a bassa pressione (Luna/Mercurio/Marte con habitat)">
+            <span>EVA pressurizzata</span>
+            <input type="radio" name="pressure" value="medium">
+          </label>
+          <label class="choice" title="Super pressurizzata per ambienti estremi (Venere ~90 bar con supporto di lander rinforzato)">
+            <span>Ultra (alta pressione)</span>
+            <input type="radio" name="pressure" value="ultra">
+          </label>
+        </div>
+
+        <div class="equip-group">
+          <div class="equip-title">Controllo Termico</div>
+          <label class="choice" title="Per climi miti">
+            <span>Standard</span>
+            <input type="radio" name="thermal" value="standard" checked>
+          </label>
+          <label class="choice" title="Regge grandi escursioni termiche (Mercurio)">
+            <span>Estremo (caldo+freddo)</span>
+            <input type="radio" name="thermal" value="extreme">
+          </label>
+          <label class="choice" title="Per ambienti molto freddi (Urano/Nettuno, Marte polare)">
+            <span>Criogenico (freddo)</span>
+            <input type="radio" name="thermal" value="cold">
+          </label>
+          <label class="choice" title="Per ambienti torridi (Venere)">
+            <span>Iper-termico (caldo)</span>
+            <input type="radio" name="thermal" value="hot">
+          </label>
+        </div>
+
+        <div class="equip-group">
+          <div class="equip-title">Protezione Radiazioni</div>
+          <label class="choice"><span>Nessuna</span><input type="radio" name="radiation" value="none"></label>
+          <label class="choice"><span>Standard</span><input type="radio" name="radiation" value="standard" checked></label>
+          <label class="choice" title="Cinture intense (Giove), assenza magnetosfera (Mercurio/Marte)"><span>Alta</span><input type="radio" name="radiation" value="high"></label>
+        </div>
+
+        <div class="equip-group">
+          <div class="equip-title">Atmosfera & Filtri</div>
+          <label class="choice" title="Autonomia di O₂ e scrubber CO₂">
+            <span>Supporto vitale completo</span>
+            <input type="checkbox" name="life" checked>
+          </label>
+          <label class="choice" title="Filtra particolato fine (tempeste di polvere su Marte)">
+            <span>Filtro anti-polvere</span>
+            <input type="checkbox" name="dust">
+          </label>
+          <label class="choice" title="Rivestimenti e visiere resistenti a H₂SO₄ nelle nubi venusiane">
+            <span>Rivestimento anti-acido</span>
+            <input type="checkbox" name="acid">
+          </label>
+        </div>
+
+        <div class="equip-group">
+          <div class="equip-title">Discesa & Mobilità</div>
+          <label class="choice" title="Utile con atmosfera densa (Terra/Venere, parziale su Marte)">
+            <span>Paracadute</span>
+            <input type="checkbox" name="parachute">
+          </label>
+          <label class="choice" title="Necessario per rientro ad alta velocità su corpi con o senza atmosfera">
+            <span>Scudo termico</span>
+            <input type="checkbox" name="heatshield">
+          </label>
+          <label class="choice" title="Controllo fine su corpi senza aria (Mercurio)">
+            <span>Micro‑propulsori</span>
+            <input type="checkbox" name="thrusters">
+          </label>
+          <label class="choice" title="Sopravvivenza in giganti gassosi: piattaforma aerostatica a quota di equilibrio">
+            <span>Modulo aerostato</span>
+            <input type="checkbox" name="aerostat">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTRO: AVATAR -->
+    <section class="card avatar-wrap" aria-live="polite">
+      <div class="status" id="statusBar"><span class="dot" id="statusDot" style="background:var(--warn)"></span><span id="statusText">Seleziona un pianeta e premi "Prova atterraggio".</span></div>
+      <div class="stage" id="stage">
+        <div class="planet-backdrop" id="backdrop" aria-hidden="true"></div>
+        <!-- Astronaut SVG ad alta qualità (stilizzato realistico) -->
+        <div id="avatar" style="position:relative" aria-label="Avatar astronauta">
+          <svg class="astronaut" viewBox="0 0 300 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="astronautTitle astronautDesc">
+            <title id="astronautTitle">Astronauta</title>
+            <desc id="astronautDesc">Astronauta realistico in tuta EVA con zaino e casco</desc>
+            <!-- Ombra -->
+            <ellipse cx="150" cy="500" rx="60" ry="10" fill="rgba(0,0,0,.35)"/>
+            <!-- Zaino -->
+            <g id="pack">
+              <rect x="100" y="130" width="100" height="140" rx="18" fill="#8aa0b7" stroke="#5e748e" stroke-width="3"/>
+              <circle cx="120" cy="160" r="10" fill="#4ac6ff"/>
+              <circle cx="180" cy="160" r="10" fill="#ffd166"/>
+              <rect x="118" y="200" width="64" height="20" rx="6" fill="#3b4e66"/>
+            </g>
+            <!-- Corpo tuta -->
+            <g id="suit">
+              <path d="M120 120h60c18 0 26 20 26 34v120c0 12-10 22-22 22h-68c-12 0-22-10-22-22V154c0-14 8-34 26-34z" fill="#ccd6e4" stroke="#98a5b6" stroke-width="3"/>
+            </g>
+            <!-- Braccia -->
+            <g id="arms">
+              <path d="M96 170c-18 6-28 24-24 40 5 20 24 30 40 26l6-18c-10 2-20-6-22-14-3-10 4-18 14-22l-14-12z" fill="#ccd6e4" stroke="#98a5b6" stroke-width="3"/>
+              <path d="M204 170c18 6 28 24 24 40-5 20-24 30-40 26l-6-18c10 2 20-6 22-14 3-10-4-18-14-22l14-12z" fill="#ccd6e4" stroke="#98a5b6" stroke-width="3"/>
+            </g>
+            <!-- Guanti -->
+            <circle cx="86" cy="236" r="12" fill="#5e748e"/>
+            <circle cx="214" cy="236" r="12" fill="#5e748e"/>
+            <!-- Gambe -->
+            <g id="legs">
+              <path d="M130 276h-20c-12 0-18 10-18 22v98c0 8 6 14 14 14h24v-134z" fill="#d7e2ef" stroke="#98a5b6" stroke-width="3"/>
+              <path d="M170 276h20c12 0 18 10 18 22v98c0 8-6 14-14 14h-24V276z" fill="#d7e2ef" stroke="#98a5b6" stroke-width="3"/>
+            </g>
+            <!-- Stivali -->
+            <rect x="92" y="410" width="48" height="26" rx="6" fill="#5e748e"/>
+            <rect x="160" y="410" width="48" height="26" rx="6" fill="#5e748e"/>
+            <!-- Casco -->
+            <g id="helmet">
+              <circle cx="150" cy="90" r="64" fill="#dfe8f4" stroke="#98a5b6" stroke-width="4"/>
+              <circle cx="150" cy="90" r="54" fill="#0f1a2f"/>
+              <radialGradient id="glass" cx="0.3" cy="0.3">
+                <stop offset="0%" stop-color="#3dd5ff" stop-opacity=".6"/>
+                <stop offset="100%" stop-color="#00122a" stop-opacity=".2"/>
+              </radialGradient>
+              <circle cx="150" cy="90" r="50" fill="url(#glass)"/>
+              <path d="M110 50c20 8 60 8 80 0" stroke="rgba(255,255,255,.5)" stroke-width="4" stroke-linecap="round"/>
+            </g>
+          </svg>
+
+          <!-- OVERLAY EQUIPAGGIAMENTO VISIVO -->
+          <svg class="equip-overlay parachute" id="ovParachute" viewBox="0 0 300 180" width="300" height="180" style="left:50%;transform:translateX(-50%); display:none">
+            <path d="M20 160 Q150 -10 280 160" fill="#e34f6f" opacity=".9"/>
+            <path d="M60 160 Q150 40 240 160" fill="#ffd166" opacity=".9"/>
+            <path d="M20 160L60 160M280 160L240 160M150 160L150 120" stroke="#ffffff" stroke-width="3"/>
+          </svg>
+
+          <svg class="equip-overlay heatshield" id="ovHeatshield" viewBox="0 0 300 200" width="260" height="200" style="left:50%;transform:translateX(-50%); display:none">
+            <ellipse cx="150" cy="120" rx="120" ry="60" fill="#6c4f3d"/>
+            <ellipse cx="150" cy="128" rx="122" ry="62" fill="none" stroke="#ff9f43" stroke-width="6" stroke-dasharray="12 8"/>
+          </svg>
+
+          <svg class="equip-overlay aerostat" id="ovAerostat" viewBox="0 0 360 240" width="340" height="240" style="left:50%;transform:translateX(-50%); display:none">
+            <ellipse cx="180" cy="80" rx="150" ry="60" fill="#6ccff6"/>
+            <rect x="160" y="130" width="40" height="20" fill="#3b4e66"/>
+            <line x1="160" y1="130" x2="145" y2="160" stroke="#fff"/>
+            <line x1="200" y1="130" x2="215" y2="160" stroke="#fff"/>
+          </svg>
+
+          <div id="skull" class="skull" aria-hidden="true">☠️</div>
+        </div>
+        <div class="ground" aria-hidden="true"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="resetBtn" type="button">Reset tuta</button>
+        <button class="btn primary" id="testBtn" type="button" disabled>Prova atterraggio</button>
+        <button class="btn" id="autoTestBtn" type="button" title="Esegui test automatici">Esegui autotest</button>
+      </div>
+      <div class="footer-note">Nota: su giganti gassosi non esiste una superficie solida. La sopravvivenza è possibile solo "galleggiando" a quota appropriata con un modulo aerostato.</div>
+
+      <details class="debug">
+        <summary>Diagnostica & Log</summary>
+        <div style="margin:8px 0">
+          <span class="badge">No‑web3</span>
+          <span class="badge" id="walletBadge">Wallet: nessun uso</span>
+          <span class="badge" id="errBadge">Errori: 0</span>
+          <span class="badge" id="testBadge">Test: 0/0</span>
+        </div>
+        <pre id="debugLog" aria-live="polite"></pre>
+      </details>
+    </section>
+
+    <!-- DESTRA: PIANETI -->
+    <aside class="card" aria-label="Elenco pianeti e dettagli">
+      <h2>Seleziona un pianeta</h2>
+      <div class="planet-list" id="planetList"></div>
+      <div class="planet-details" id="planetDetails">Nessun pianeta selezionato.</div>
+    </aside>
+  </main>
+
+  <script>
+    "use strict";
+
+    // \u26A0\uFE0F Modalità OFFLINE: nessun uso di MetaMask o API web3
+    (function(){
+      try{
+        if (typeof window !== 'undefined' && 'ethereum' in window) {
+          // Alcune estensioni loggano in console: evitiamo qualunque chiamata.
+          document.getElementById('walletBadge').textContent = 'Wallet: ignorato';
+          console.debug('[Gioco] Web3 wallet rilevato nel browser, ma questo gioco non lo usa.');
+        }
+      }catch(e){ /* ignora */ }
+    })();
+
+    // Utility diagnostica
+    const logEl = ()=>document.getElementById('debugLog');
+    const errBadge = ()=>document.getElementById('errBadge');
+    const testBadge = ()=>document.getElementById('testBadge');
+    let errCount = 0; let testPass = 0; let testTotal = 0;
+    function log(msg){
+      const t = new Date().toLocaleTimeString();
+      logEl().textContent += `[${t}] ${msg}\n`;
+      logEl().scrollTop = logEl().scrollHeight;
+    }
+    window.addEventListener('error', (e)=>{ errCount++; errBadge().textContent = `Errori: ${errCount}`; log(`ERRORE: ${e.message}`); });
+
+    // Dati pianeti (valori sintetici ma realistici)
+    const PLANETS = [
+      {
+        key:"mercury", name:"Mercurio", color:"#bfb8a5",
+        type:"roccioso", gravity:0.38, pressureBar:0.0, temp:"-173 a +427 °C", atm:"Quasi assente",
+        hazards:["Escursioni termiche estreme","Radiazione solare elevata"],
+        needs:{pressure:"medium", thermal:"extreme", radiation:"high", life:true, parachute:false, heatshield:true, thrusters:true, dust:false, acid:false, aerostat:false}
+      },
+      {
+        key:"venus", name:"Venere", color:"#e0b27a",
+        type:"roccioso", gravity:0.9, pressureBar:92, temp:"~+465 °C", atm:"Densa, CO₂ 96% + nubi acide",
+        hazards:["Pressione ~90 bar","Calore estremo","Acidità nelle nubi"],
+        needs:{pressure:"ultra", thermal:"hot", radiation:"standard", life:true, parachute:true, heatshield:true, thrusters:false, dust:false, acid:true, aerostat:false}
+      },
+      { key:"earth", name:"Terra", color:"#5ac4ff",
+        type:"roccioso", gravity:1.0, pressureBar:1, temp:"-50 a +50 °C", atm:"Azoto/Ossigeno",
+        hazards:["Rientro ad alta energia","Meteo variabile"],
+        needs:{pressure:"low", thermal:"standard", radiation:"none", life:false, parachute:true, heatshield:true, thrusters:false, dust:false, acid:false, aerostat:false}
+      },
+      { key:"mars", name:"Marte", color:"#c25b3c",
+        type:"roccioso", gravity:0.38, pressureBar:0.006, temp:"~−60 °C", atm:"Sottile, CO₂ 95%",
+        hazards:["Freddo intenso","Radiazione elevata","Tempeste di polvere"],
+        needs:{pressure:"medium", thermal:"cold", radiation:"high", life:true, parachute:true, heatshield:true, thrusters:true, dust:true, acid:false, aerostat:false}
+      },
+      { key:"jupiter", name:"Giove", color:"#d1b497",
+        type:"gigante gassoso", gravity:2.5, pressureBar:"atm superiore", temp:"-145 °C (nubi)", atm:"Idrogeno/Elio",
+        hazards:["Cinture di radiazione intense","Tempeste (Grande Macchia Rossa)","Nessuna superficie solida"],
+        needs:{pressure:"medium", thermal:"cold", radiation:"high", life:true, parachute:false, heatshield:true, thrusters:false, dust:false, acid:false, aerostat:true}
+      },
+      { key:"saturn", name:"Saturno", color:"#e8d7a8",
+        type:"gigante gassoso", gravity:1.06, pressureBar:"atm superiore", temp:"~−178 °C", atm:"Idrogeno/Elio",
+        hazards:["Venti forti","Nessuna superficie solida"],
+        needs:{pressure:"medium", thermal:"cold", radiation:"standard", life:true, parachute:false, heatshield:true, thrusters:false, dust:false, acid:false, aerostat:true}
+      },
+      { key:"uranus", name:"Urano", color:"#8fd6e1",
+        type:"gigante ghiacciato", gravity:0.89, pressureBar:"atm superiore", temp:"~−200 °C", atm:"H/He/CH₄",
+        hazards:["Freddo estremo","Venti forti","Nessuna superficie solida"],
+        needs:{pressure:"medium", thermal:"cold", radiation:"standard", life:true, parachute:false, heatshield:true, thrusters:false, dust:false, acid:false, aerostat:true}
+      },
+      { key:"neptune", name:"Nettuno", color:"#5aa0ff",
+        type:"gigante ghiacciato", gravity:1.14, pressureBar:"atm superiore", temp:"~−200 °C", atm:"H/He/CH₄",
+        hazards:["Venti supersonici","Freddo estremo","Nessuna superficie solida"],
+        needs:{pressure:"medium", thermal:"cold", radiation:"standard", life:true, parachute:false, heatshield:true, thrusters:false, dust:false, acid:false, aerostat:true}
+      }
+    ];
+
+    // Stato
+    let selectedPlanet = null;
+
+    const el = (sel)=>document.querySelector(sel);
+    const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
+
+    function renderPlanetList(){
+      const list = el('#planetList');
+      list.innerHTML = '';
+      PLANETS.forEach(p=>{
+        const card = document.createElement('div');
+        card.className = 'planet-card';
+        card.innerHTML = `
+          <div class="planet-badge" style="background:${p.color}"></div>
+          <div>
+            <div style="font-weight:700">${p.name}</div>
+            <div class="planet-info">${p.type} • g=${p.gravity} • atm: ${p.atm}</div>
+          </div>
+          <div>➡</div>
+        `;
+        card.addEventListener('click',()=>selectPlanet(p.key));
+        list.appendChild(card);
+      });
+    }
+
+    function selectPlanet(key){
+      selectedPlanet = PLANETS.find(p=>p.key===key);
+      el('#testBtn').disabled = false;
+      // Dettagli
+      el('#planetDetails').innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
+          <div class="planet-badge" style="background:${selectedPlanet.color}"></div>
+          <div style="font-weight:800; font-size:16px">${selectedPlanet.name}</div>
+        </div>
+        <div class="legend">
+          <span class="pill">Tipo: ${selectedPlanet.type}</span>
+          <span class="pill">Gravità: ${selectedPlanet.gravity} g</span>
+          <span class="pill">Pressione: ${selectedPlanet.pressureBar} bar</span>
+          <span class="pill">T: ${selectedPlanet.temp}</span>
+        </div>
+        <ul style="margin-top:8px; padding-left:18px">
+          ${selectedPlanet.hazards.map(h=>`<li>${h}</li>`).join('')}
+        </ul>
+      `;
+      // Sfondo
+      el('#backdrop').style.background = `radial-gradient(600px 220px at 70% 20%, ${hexToRgba(selectedPlanet.color, .25)}, transparent 60%),
+        radial-gradient(900px 300px at 50% 120%, rgba(108,204,255,.08), transparent 60%)`;
+      updateStatus("Selezionato: "+selectedPlanet.name+". Premi 'Prova atterraggio'.", 'warn');
+    }
+
+    function getGear(){
+      const val = name=>{
+        const r = document.querySelector(`input[name="${name}"]:checked`);
+        return r? r.value : null;
+      };
+      const on = name => document.querySelector(`input[name="${name}"]`).checked;
+      return {
+        pressure: val('pressure'),
+        thermal: val('thermal'),
+        radiation: val('radiation'),
+        life: on('life'), dust: on('dust'), acid: on('acid'),
+        parachute: on('parachute'), heatshield: on('heatshield'), thrusters: on('thrusters'), aerostat: on('aerostat')
+      };
+    }
+
+    function evaluate(planet, gear){
+      const req = planet.needs;
+      const reasons = [];
+
+      // Pressione
+      const order = {low:1, medium:2, ultra:3};
+      if(order[gear.pressure] < order[req.pressure]) reasons.push(`Tuta non abbastanza pressurizzata (richiesto: ${labelPressure(req.pressure)})`);
+
+      // Termico (gestione compatibile: extreme copre tutto; hot e cold coprono rispettive)
+      const okThermal = (req.thermal==='standard' && ['standard','extreme'].includes(gear.thermal)) ||
+                        (req.thermal==='cold' && ['cold','extreme'].includes(gear.thermal)) ||
+                        (req.thermal==='hot' && ['hot','extreme'].includes(gear.thermal)) ||
+                        (req.thermal==='extreme' && gear.thermal==='extreme');
+      if(!okThermal) reasons.push(`Controllo termico inadeguato (richiesto: ${labelThermal(req.thermal)})`);
+
+      // Radiazioni (high >= standard >= none)
+      const rOrder = {none:1, standard:2, high:3};
+      if(rOrder[gear.radiation] < rOrder[req.radiation]) reasons.push(`Schermo radiazioni insufficiente (richiesto: ${labelRad(req.radiation)})`);
+
+      // Supporto vitale
+      if(req.life && !gear.life) reasons.push('Manca supporto vitale (O₂/scrubber)');
+
+      // Filtri specifici
+      if(req.dust && !gear.dust) reasons.push('Serve filtro anti-polvere');
+      if(req.acid && !gear.acid) reasons.push('Serve rivestimento anti‑acido');
+
+      // Discesa
+      if(req.parachute && !gear.parachute) reasons.push('Serve paracadute per l\'atmosfera');
+      if(req.heatshield && !gear.heatshield) reasons.push('Serve scudo termico per il rientro');
+      if(req.thrusters && !gear.thrusters) reasons.push('Servono micro‑propulsori per l\'atterraggio');
+
+      // Giganti gassosi
+      const gasGiant = planet.type.includes('gigante');
+      if(gasGiant && !gear.aerostat) reasons.push('Nessuna superficie: serve modulo aerostato per galleggiare');
+
+      const survive = reasons.length===0;
+      return {survive, reasons};
+    }
+
+    function labelPressure(p){ return p==='low'?'Standard LEO': p==='medium'?'EVA pressurizzata':'Ultra (alta pressione)'; }
+    function labelThermal(t){ return t==='standard'?'Standard': t==='cold'?'Criogenico (freddo)': t==='hot'?'Iper‑termico (caldo)':'Estremo (escursioni)'; }
+    function labelRad(r){ return r==='none'?'Nessuna': r==='standard'?'Standard':'Alta'; }
+
+    function updateStatus(text, kind='warn'){
+      const dot = el('#statusDot');
+      const map = {good:'var(--good)', bad:'var(--bad)', warn:'var(--warn)'};
+      dot.style.background = map[kind]||'var(--warn)';
+      el('#statusText').textContent = text;
+      log(text);
+    }
+
+    function hexToRgba(hex, a){
+      const c = hex.replace('#','');
+      const n = parseInt(c.length===3 ? c.split('').map(x=>x+x).join('') : c, 16);
+      const r=(n>>16)&255, g=(n>>8)&255, b=n&255; return `rgba(${r},${g},${b},${a})`;
+    }
+
+    function refreshOverlays(){
+      const g = getGear();
+      el('#ovParachute').style.display = g.parachute? 'block':'none';
+      el('#ovHeatshield').style.display = g.heatshield? 'block':'none';
+      el('#ovAerostat').style.display = g.aerostat? 'block':'none';
+    }
+
+    function resetSuit(){
+      // Defaults
+      document.querySelector('input[name="pressure"][value="low"]').checked = true;
+      document.querySelector('input[name="thermal"][value="standard"]').checked = true;
+      document.querySelector('input[name="radiation"][value="standard"]').checked = true;
+      ['life','dust','acid','parachute','heatshield','thrusters','aerostat'].forEach(n=>{
+        const cb=document.querySelector(`input[name="${n}"]`); cb.checked = (n==='life');
+      });
+      refreshOverlays();
+      clearAnimations();
+      updateStatus('Tuta reimpostata. Seleziona un pianeta e prova l\'atterraggio.', 'warn');
+    }
+
+    function clearAnimations(){
+      el('#skull').classList.remove('show-skull');
+      el('#avatar').classList.remove('anim-walk','anim-fall');
+      el('#avatar').style.transform='';
+    }
+
+    function playResultAnimation(ok){
+      clearAnimations();
+      if(ok){
+        el('#avatar').classList.add('anim-walk');
+        el('#skull').classList.remove('show-skull');
+      }else{
+        el('#avatar').classList.add('anim-fall');
+        setTimeout(()=>el('#skull').classList.add('show-skull'), 650);
+      }
+    }
+
+    // Eventi
+    $$('.choice input').forEach(inp=>{
+      inp.addEventListener('change', refreshOverlays);
+    });
+
+    el('#testBtn').addEventListener('click', ()=>{
+      if(!selectedPlanet) return;
+      const gear = getGear();
+      const {survive, reasons} = evaluate(selectedPlanet, gear);
+      if(survive){
+        updateStatus(`Atterraggio su ${selectedPlanet.name}: SUCCESSO!`, 'good');
+      }else{
+        updateStatus(`Fallito su ${selectedPlanet.name}: ${reasons[0]}${reasons.length>1?' …':''}`, 'bad');
+      }
+      playResultAnimation(survive);
+    });
+
+    el('#resetBtn').addEventListener('click', resetSuit);
+
+    // Autotest (semplici test "unitari" della logica evaluate)
+    function runAutoTests(){
+      const tests = [];
+      const gear = g=>({ // helper per creare gear
+        pressure:g.pressure, thermal:g.thermal, radiation:g.radiation,
+        life:!!g.life, dust:!!g.dust, acid:!!g.acid,
+        parachute:!!g.parachute, heatshield:!!g.heatshield, thrusters:!!g.thrusters, aerostat:!!g.aerostat
+      });
+      const P = Object.fromEntries(PLANETS.map(p=>[p.key,p]));
+
+      // --- Test attesi OK ---
+      tests.push({
+        name:'Terra – configurazione corretta',
+        f:()=> evaluate(P.earth, gear({pressure:'low', thermal:'standard', radiation:'none', life:false, parachute:true, heatshield:true, thrusters:false})).survive === true
+      });
+      tests.push({
+        name:'Venere – configurazione minima corretta',
+        f:()=> evaluate(P.venus, gear({pressure:'ultra', thermal:'hot', radiation:'standard', life:true, parachute:true, heatshield:true, acid:true})).survive === true
+      });
+      tests.push({
+        name:'Marte – configurazione corretta',
+        f:()=> evaluate(P.mars, gear({pressure:'medium', thermal:'cold', radiation:'high', life:true, parachute:true, heatshield:true, thrusters:true, dust:true})).survive === true
+      });
+      tests.push({
+        name:'Giove – sopravvivenza con aerostato',
+        f:()=> evaluate(P.jupiter, gear({pressure:'medium', thermal:'cold', radiation:'high', life:true, heatshield:true, aerostat:true})).survive === true
+      });
+
+      // --- Test attesi FAIL ---
+      tests.push({
+        name:'Terra – senza scudo termico',
+        f:()=> evaluate(P.earth, gear({pressure:'low', thermal:'standard', radiation:'none', life:false, parachute:true, heatshield:false})).survive === false
+      });
+      tests.push({
+        name:'Venere – senza rivestimento anti‑acido',
+        f:()=> evaluate(P.venus, gear({pressure:'ultra', thermal:'hot', radiation:'standard', life:true, parachute:true, heatshield:true, acid:false})).survive === false
+      });
+      tests.push({
+        name:'Marte – senza filtro polvere',
+        f:()=> evaluate(P.mars, gear({pressure:'medium', thermal:'cold', radiation:'high', life:true, parachute:true, heatshield:true, thrusters:true, dust:false})).survive === false
+      });
+      tests.push({
+        name:'Giove – senza aerostato',
+        f:()=> evaluate(P.jupiter, gear({pressure:'medium', thermal:'cold', radiation:'high', life:true, heatshield:true, aerostat:false})).survive === false
+      });
+
+      // Esecuzione
+      testTotal = tests.length; testPass = 0;
+      tests.forEach(t=>{ try{ const ok = !!t.f(); if(ok) testPass++; log(`TEST ${ok?'OK':'FAIL'} – ${t.name}`); } catch(e){ errCount++; errBadge().textContent = `Errori: ${errCount}`; log(`TEST EXC – ${t.name}: ${e.message}`);} });
+      testBadge().textContent = `Test: ${testPass}/${testTotal}`;
+    }
+
+    el('#autoTestBtn').addEventListener('click', runAutoTests);
+
+    // Avvio
+    renderPlanetList();
+    refreshOverlays();
+    log('Gioco pronto. Seleziona un pianeta, poi "Prova atterraggio".');
+  </script>
+</body>
+</html>
